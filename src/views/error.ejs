@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Error</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    h2 { text-align: center; margin-bottom: 20px; }
+    .flash-message {
+      padding: 10px; margin-bottom: 20px; border-radius: 4px; text-align: center;
+      background-color: #f2dede; color: #a94442;
+    }
+    .btn {
+      padding: 10px 20px; background-color: #4CAF50; color: white;
+      border: none; border-radius: 4px; text-decoration: none; display: inline-block;
+    }
+    .btn:hover { background-color: #45a049; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Error</h2>
+    <div class="flash-message">
+      <%= message %>
+    </div>
+    <a href="/users" class="btn">Back to Users</a>
+  </div>
+</body>
+</html>
