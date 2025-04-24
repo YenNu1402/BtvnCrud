@@ -12,7 +12,6 @@
         "email": "c@example.com",
         "role": "user"
       },
-      // ...
       {
         "id": 9,
         "name": "qq",
