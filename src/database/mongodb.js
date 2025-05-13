@@ -1,38 +1,15 @@
-import { MongoClient } from "mongodb";
-import dotenv from "dotenv";
-dotenv.config(); 
+// import mongoose from "mongoose";
+// import dotenv from "dotenv";
+// dotenv.config();
 
-const uri = process.env.MONGODB_URI;
-const dbName = process.env.MONGODB_DB;
+// const connectDB = async () => {
+//   try {
+//     await mongoose.connect(process.env.MONGO_URI);
+//     console.log("✅ MongoDB connected");
+//   } catch (err) {
+//     console.error("❌ MongoDB connection failed:", err.message);
+//     process.exit(1);
+//   }
+// };
 
-if(!uri || !dbName) {
-    throw new Error("MongoDB URI or DB name not provided in .env file");
-}
-
-const client = new MongoClient(uri);
-var db = null;
-
-const connectDB = async ()=> {
-  try {
-    await client.connect();
-    console.log("Connected to MongoDB")
-    return client.db(dbName);
-  } catch (error) {
-    console.log("Error connecting to MongoDB:", error);
-    throw error;
-  }
-};
-
-const getDB = async ()=>{
-  db = await connectDB();
-  if(!db){
-    throw new Error("Database not connected");
-  }
-  return db;
-}
-
-
-export default {
-  connectDB,
-  getDB
-};
+// connectDB();
