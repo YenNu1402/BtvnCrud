@@ -123,66 +123,78 @@ class UserService {
   }
   async ForgotPassword(email) {
     try {
-      const existedUser = await this.user.findOne({email});
-      if(!existedUser){
+      const existedUser = await this.user.findOne({ email });
+      if (!existedUser) {
         throw new Error("User not registered yet");
-
       }
-      //generate token
-      // const resetToken = jwt.sign({id: existedUser._id}, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '15m'});
-      
-      // await this.user.findByIdAndUpdate(existedUser._id, {resetToken});
-      // console.log("resetToken: ", resetToken);
+  
       const otp = RandomOTP();
-      const expiredOtp = GetExpiredOtp();
-
-      const updatedUser = await this.user.findByIdAndUpdate(existedUser._id, {otp, expiredOtp});
-
-      const mailOptions ={
+      const otpExpire = GetExpiredOtp();
+  
+      // Cập nhật OTP và expiredOtp bằng $set để đảm bảo lưu đúng
+      const updatedUser = await this.user.findByIdAndUpdate(
+        existedUser._id,
+        { $set: { otp, otpExpire } },
+        { new: true }
+      );
+      if (!updatedUser) {
+        throw new Error("Error updating OTP");
+      }
+  
+      const mailOptions = {
         emailFrom: "SGroupResetPassword@gmail.com",
         emailTo: email,
         emailSubject: "Reset Password",
-        emailText: `This is your otp: ${otp}. It will expire in 5 minutes. Please use it to reset your password. If you did not request this, please ignore this email.`,
-      }
+        emailText: `This is your OTP: ${otp}. It will expire in 5 minutes. Please use it to reset your password. If you did not request this, please ignore this email.`,
+      };
+  
       const result = await mailService.sendMail(mailOptions);
-          if(!result){
-            throw new Error("Error sending email");
-          }
-          console.log("result: ", result);
-          return result
-
-
+      if (!result) {
+        throw new Error("Error sending email");
+      }
+      console.log("Mail sent: ", result);
+      return result;
     } catch (err) {
       throw new Error("Error sending forgot pass email: " + err.message);
-      
     }
   }
+  
   async ResetPassword(otp, email, newPassword) {
     try {
-      
-      
-      const user = await this.user.findOne({email});
+      if (!otp || !email || !newPassword) {
+        throw new Error("Missing required fields");
+      }
+  
+      const user = await this.user.findOne({ email });
       if (!user) {
         throw new Error("User not found");
       }
-      if (user.otp !== otp) {
-        throw new Error("Invalid OTP");
-      }
-      if (user.expiredOtp < currentTime) {
+  
+      if (!user.otpExpire || user.otpExpire < new Date()) {
         throw new Error("OTP expired");
       }
+  
+      if (!user.otp || user.otp.toString().trim() !== otp.toString().trim()) {
+        throw new Error("Invalid OTP");
+      }
+  
       const hashedPass = await bcrypt.hash(newPassword, 10);
+      if (!hashedPass) {
+        throw new Error("Error hashing password");
+      }
+  
       user.password = hashedPass;
-      
+      user.otp = null;
+      user.otpExpire = null;
+  
       const updatedUser = await user.save();
       if (!updatedUser) {
         throw new Error("Error updating password");
       }
+  
       return updatedUser;
-      
     } catch (err) {
       throw new Error("Error reset pass: " + err.message);
-      
     }
   }
 }

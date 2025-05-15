@@ -3,7 +3,8 @@ export const RandomOTP = () => {
     return Math.floor( 100000 + Math.random() * 900000 )
 }
 export const GetExpiredOtp = () => {
-    const time = GetCurrentDate();
-    const expireTime = time.setMinutes( time.getMinutes() + 5 ); // 5 minutes
+    const date = GetCurrentDate();
+    // Set the expiration time to 5 minutes from now
+    const expireTime = new Date(date.getTime() + 5 * 60 * 1000);
     return expireTime;
 }

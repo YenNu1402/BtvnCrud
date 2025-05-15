@@ -149,29 +149,25 @@ class UserController {
       next(error);
     }
   }
-  async ResetPassword(req, res, next){
-    try{
-      // const resetToken= req.headers["resetToken"];
-      // console.log("resetToken: ", resetToken);
-
-      // const verifiedToken = jwt.verify(resetToken, process.env.ACCESS_TOKEN_SECRET);
-      
-      const otp = req.body.otp;
-      const email = req.body.email;
-      const password = req.body.password;
-      if(!password){
-        return res.status(400).json({message:"Missing password"})
+  async ResetPassword(req, res, next) {
+    try {
+      const { otp, email, password } = req.body;
+  
+      // Validation đầu vào
+      if (!otp || !email || !password) {
+        return res.status(400).json({ message: "Missing required fields: otp, email, and password are required" });
       }
+  
       const result = await userService.ResetPassword(otp, email, password);
-      if(!result){
-        return res.status(404).json({message:"Error resetting password"})
+      if (!result) {
+        return res.status(400).json({ message: "Error resetting password" });
       }
-      return res.status(200).json({message:"Password reset successfully", data:result})
+  
+      return res.status(200).json({ message: "Password reset successfully", data: result });
+    } catch (error) {
+      // Trả về thông báo lỗi chi tiết từ service
+      return res.status(400).json({ message: error.message || "Error resetting password" });
     }
-    catch (error) {
-      next(error);
-    }
-
   }
 }
 
