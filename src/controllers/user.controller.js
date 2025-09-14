@@ -1,64 +1,174 @@
-import userService from '../services/user.service.js';
+import userService from "../services/user.service.js";
+import {mailService} from "../configs/sendMail.config.js";
+import jwt from "jsonwebtoken";
 
-const GetAll = async (req, res, next) => {
-    try {
-        const data = await userService.GetAll();
-        return res.status(200).json({ data });
-    } catch (error) {
-        next(error);
+class UserController {
+
+  async SendEmail(req, res, next) {
+    try{const email = req.body.email;
+
+    const mailOptions={
+      emailFrom:"YenNu@gmail.com",
+      emailTo:email,
+      emailSubject:"Test Email",
+      emailText:"This is a test email",
     }
-};
-
-const GetById = async (req, res, next) => {
-    try {
-        const id = req.validatedId || parseInt(req.params.id);
-        const user = await userService.GetById(id);
-        return res.status(200).json({ data: user });
-    } catch (error) {
-        next(error);
+  
+    const result = await mailService.sendMail(mailOptions);
+    if(!result){
+      return res.status(404).json({message:"Error sending email"})
     }
-};
-
-const GetByField = async (req, res, next) => {
-    try {
-        const { field, value } = req.query;
-        if (!field || !value) {
-            return res.status(400).json({ error: 'Field and value are required' });
-        }
-        const users = await userService.GetByField(field, value);
-        return res.status(200).json({ data: users });
-    } catch (error) {
-        next(error);
+    console.log("result: ", result);
+    return res.status(200).json({message:"Email sent successfully", data:result})
+    
+  
+  }
+    catch (err) {
+      next(err);
+      return res.status(500).json({message:"Error logging in user"})
     }
-};
 
-const Create = async (req, res, next) => {
+  }
+
+  async Login(req, res, next){
     try {
-        const user = await userService.createUser(req.body);
-        return res.status(201).json({ message: 'User created', data: user });
-    } catch (error) {
-        next(error);
-    }
-};
+      const {email, password} = req.body;
+      if( !email || !password){
+        return res.status(400).json({message:"Missing require fields"})
+      }
+      console.log("controller: ", email, password);
 
-const Update = async (req, res, next) => {
+  
+      const token = await userService.Login( email, password);
+      if (!token){
+        return res.status(404).json({message:"Error logging in user at service"})
+      }
+      
+      return res.status(200).json({message:"Login successfully", data:token})
+    } catch (err) {
+      next(err);
+      return res.status(500).json({message:"Error logging in user"})
+    }
+  }
+
+
+  async Register(req, res){
+    try{
+      const {username, email, password} = req.body;
+      
+    if(!username || !email || !password){
+      return res.status(400).json({message:"Missing require fields"})
+    }
+
+    const user = await userService.Register(username, email, password);
+    // console.log("user: ",user);
+    if(!user){
+      return res.status(404).json({message:"Error registering user at service"})
+    }
+    return res.status(201).json({message:"User registered successfully", data:user})}
+     
+    catch(err){
+      return res.status(500).json(err)
+    }
+
+
+  }
+  async GetAll(req, res, next) {
     try {
-        const id = req.validatedId || parseInt(req.params.id);
-        const user = await userService.updateUser(id, req.body);
-        return res.status(200).json({ message: 'User updated', data: user });
+      const users = await userService.GetAll();
+      return res.status(200).json({ data: users });
     } catch (error) {
-        next(error);
+      next(error);
     }
-};
+  } 
 
-const Delete = async (req, res, next) => {
+  async GetById(req, res, next) {
     try {
-        const id = req.validatedId || parseInt(req.params.id);
-        const user = await userService.deleteUser(id);
-        return res.status(200).json({ message: 'User deleted', data: user });
+      const id = req.params.id;
+      const user = await userService.GetById(id);
+      if (!user) {
+        return res.status(404).json("Not Found");
+      }
+      return res.status(200).json({ data: user });
     } catch (error) {
-        next(error);
+      next(error);
     }
-};
+  }
 
-export default { GetAll, GetById, GetByField, Create, Update, Delete };
+  async Create(req, res, next) {
+    try {
+      const body = req.body;
+      const newUser = await userService.Create(body);
+      if (!newUser) {
+        return res.status(400).json("Bad Request");
+      }
+      return res.status(201).json({ data: newUser });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async Update(req, res, next) {
+    try {
+      const id = req.params.id;
+      const body = req.body;
+      const updatedUser = await userService.Update(id, body);
+      if (!updatedUser) {
+        return res.status(404).json("Not Found");
+      }
+      return res.status(200).json("Updated Successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async Delete(req, res, next) {
+    try {
+      const id = req.params.id;
+      const deleted = await userService.Delete(id);
+      if (!deleted) {
+        return res.status(404).json("Not Found");
+      }
+      return res.status(200).json("Deleted Successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+  async ForgotPassword(req, res, next){
+     try{
+      const email = req.body.email;
+     if(!email){
+      return res.status(400).json({message:"Missing email"})
+     }
+     const result = await userService.ForgotPassword(email);
+      if(!result){
+        return res.status(404).json({message:"Error sending email"})
+      }
+      return res.status(200).json({message:"Email sent successfully", data:result})}
+      catch (error) {
+      next(error);
+    }
+  }
+  async ResetPassword(req, res, next) {
+    try {
+      const { otp, email, password } = req.body;
+  
+      // Validation đầu vào
+      if (!otp || !email || !password) {
+        return res.status(400).json({ message: "Missing required fields: otp, email, and password are required" });
+      }
+  
+      const result = await userService.ResetPassword(otp, email, password);
+      if (!result) {
+        return res.status(400).json({ message: "Error resetting password" });
+      }
+  
+      return res.status(200).json({ message: "Password reset successfully", data: result });
+    } catch (error) {
+      // Trả về thông báo lỗi chi tiết từ service
+      return res.status(400).json({ message: error.message || "Error resetting password" });
+    }
+  }
+}
+
+export default new UserController();

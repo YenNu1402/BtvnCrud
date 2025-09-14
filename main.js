@@ -1,80 +1,39 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
-// import session from 'express-session';
-// import flash from 'connect-flash';
-import router from './src/routes/index.js';
-import viewRoutes from './src/routes/apis/user.route.js'
-import db from './src/database/mongodb.js';
-
-dotenv.config();
-
+import express from "express";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+import router from "./src/routes/index.js";
+import mongoInstance from "./src/configs/mongoose.config.js";
+import cookieParser from 'cookie-parser'
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+dotenv.config();
 
-// Middleware
-app.use(express.json());
-// app.use(express.urlencoded({ extended: true }));
-// app.use(session({
-//     secret: process.env.SESSION_SECRET || 'secret',
-//     resave: false,
-//     saveUninitialized: false
-// }));
-// app.use(flash());
-
-// View Engine
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'src', 'views'));
-
-// Static Files
-app.use(express.static(path.join(__dirname, 'src', 'public')));
-
-// Routes
-// app.get('/', async (req, res) => {
-//     try {
-//         const users = await userService.GetAll();
-//         res.render('home', {
-//             users,
-//             message: req.flash('message'),
-//             messageType: req.flash('messageType')
-//         });
-//     } catch (err) {
-//         console.error('Error fetching users:', err);
-//         res.render('home', {
-//             users: [],
-//             message: 'Error fetching users',
-//             messageType: 'error'
-//         });
-//     }
-// });
-app.use('/api', router);
-// app.use('/', viewRoutes);
-
-// Error Handling
-app.use((err, req, res, next) => {
-    console.error('Error:', err);
-    if (req.accepts('html')) {
-        res.status(500).render('error', { message: err.message });
-    } else {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-const startServer = async ()=>{
-    try {
-        await db.getDB();
-        console.log("MongoDB server started");
-    } catch (error) {
-        console.error("Error starting server:", error)
-        throw error;
-        
-    }
+async function startServer() {
+  const connectString = process.env.MONGODB_URI;
+  console.log("Connecting to MongoDB...");
+  await mongoInstance.connect(connectString);
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+  app.use(express.static(path.join(__dirname, "public")));
+  app.use('/uploads', express.static(path.join(__dirname, 'common/uploads')))  
+  app.use(cookieParser())
+  app.use("/api", router);
+  app.use((req, res) => {
+    res.status(404).send("Not Found");
+  });
+  app.use((err, req, res) => {
+    console.error(err.stack);
+    res.status(500).send("Something broke!");
+  });
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
 }
-startServer();
-
-const Port = process.env.PORT || 5000
-app.listen(Port, (req, res) => {
-    console.log(`Server run at http://localhost:${Port}`)
-})
+try {
+  await startServer();
+} catch (error) {
+  console.error("Error starting server:", error);
+}
